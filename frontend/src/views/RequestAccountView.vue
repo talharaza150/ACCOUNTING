@@ -154,7 +154,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import axios from 'axios';
+import api from '@/lib/axios';
 
 const form = ref({
   firstName: '',
@@ -175,7 +175,7 @@ const handleSubmit = async () => {
   loading.value = true;
 
   try {
-    await axios.post('/api/account-requests', form.value);
+    await api.post('/api/account-requests', form.value);
     submitted.value = true;
   } catch (err: any) {
     error.value = err.response?.data?.error || 'Failed to submit request';

@@ -210,6 +210,20 @@
                       Uploaded {{ formatDate(file.created_at) }}
                     </p>
                   </div>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      @click="viewFile(file)"
+                      class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                    >
+                      View
+                    </button>
+                    <button
+                      @click="downloadFile(file)"
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                    >
+                      Download
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -312,6 +326,132 @@
       </div>
     </div>
 
+    <!-- File Viewer Modal -->
+    <div v-if="showViewer" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-medium text-gray-900">{{ selectedFile?.original_name }}</h3>
+          <button @click="showViewer = false" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="max-h-96 overflow-auto">
+          <!-- Image files -->
+          <div v-if="isImage(selectedFile)" class="text-center">
+            <img :src="filePreviewUrl" alt="File preview" class="max-w-full max-h-80 mx-auto" />
+          </div>
+          
+          <!-- PDF files -->
+          <div v-else-if="isPDF(selectedFile)" class="text-center">
+            <iframe :src="filePreviewUrl" class="w-full h-80 border"></iframe>
+          </div>
+          
+          <!-- Text files -->
+          <div v-else-if="isText(selectedFile)" class="bg-gray-100 p-4 rounded font-mono text-sm">
+            <pre v-if="fileContent" class="whitespace-pre-wrap">{{ fileContent }}</pre>
+            <div v-else class="text-center text-gray-500">Loading file content...</div>
+          </div>
+          
+          <!-- Other files -->
+          <div v-else class="text-center p-8">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-gray-600">Preview not available for this file type</p>
+            <p class="text-sm text-gray-500 mt-2">{{ selectedFile?.mime_type }}</p>
+          </div>
+        </div>
+        <div class="flex justify-end mt-4 space-x-2">
+          <button
+            @click="downloadFile(selectedFile)"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+          >
+            Download
+          </button>
+          <button
+            @click="showViewer = false"
+            class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload File Modal -->
+    <div v-if="showUploadFile" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Upload File</h3>
+          <form @submit.prevent="uploadFile">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">File</label>
+                <input
+                  type="file"
+                  ref="fileInput"
+                  required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Assign to User</label>
+                <select
+                  v-model="uploadForm.assignedTo"
+                  required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a user...</option>
+                  <option v-for="user in users" :key="user.id" :value="user.id">
+                    {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Category</label>
+                <select
+                  v-model="uploadForm.categoryId"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a category (optional)...</option>
+                  <option v-for="category in categories" :key="category.id" :value="category.id">
+                    {{ category.name }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                <textarea
+                  v-model="uploadForm.description"
+                  rows="3"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Optional description of the file..."
+                ></textarea>
+              </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-6">
+              <button
+                type="button"
+                @click="showUploadFile = false"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="uploading"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {{ uploading ? 'Uploading...' : 'Upload File' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Approve Request Modal -->
     <div v-if="showApproveModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -364,7 +504,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import api from '@/lib/axios';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -380,6 +520,7 @@ const tabs = [
 const accountRequests = ref<any[]>([]);
 const users = ref<any[]>([]);
 const files = ref<any[]>([]);
+const categories = ref<any[]>([]);
 
 // Loading states
 const loadingRequests = ref(true);
@@ -390,6 +531,16 @@ const loadingFiles = ref(true);
 const showCreateUser = ref(false);
 const showApproveModal = ref(false);
 const showUploadFile = ref(false);
+
+// Upload states
+const uploading = ref(false);
+const fileInput = ref<HTMLInputElement>();
+
+// File viewer functionality
+const showViewer = ref(false);
+const selectedFile = ref<any>(null);
+const fileContent = ref('');
+const filePreviewUrl = ref('');
 
 // Forms
 const newUser = ref({
@@ -407,12 +558,18 @@ const approveForm = ref({
   password: ''
 });
 
+const uploadForm = ref({
+  assignedTo: '',
+  categoryId: '',
+  description: ''
+});
+
 const selectedRequest = ref<any>(null);
 
 // Methods
 const fetchAccountRequests = async () => {
   try {
-    const response = await axios.get('/api/admin/account-requests');
+    const response = await api.get('/api/admin/account-requests');
     accountRequests.value = response.data;
   } catch (error) {
     console.error('Error fetching account requests:', error);
@@ -423,7 +580,7 @@ const fetchAccountRequests = async () => {
 
 const fetchUsers = async () => {
   try {
-    const response = await axios.get('/api/admin/users');
+    const response = await api.get('/api/admin/users');
     users.value = response.data;
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -434,12 +591,65 @@ const fetchUsers = async () => {
 
 const fetchFiles = async () => {
   try {
-    const response = await axios.get('/api/files');
+    const response = await api.get('/api/files');
     files.value = response.data;
   } catch (error) {
     console.error('Error fetching files:', error);
   } finally {
     loadingFiles.value = false;
+  }
+};
+
+const fetchCategories = async () => {
+  try {
+    const response = await api.get('/api/categories');
+    categories.value = response.data;
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+  }
+};
+
+const uploadFile = async () => {
+  if (!fileInput.value?.files?.length) return;
+  
+  uploading.value = true;
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', fileInput.value.files[0]);
+    formData.append('assignedTo', uploadForm.value.assignedTo);
+    if (uploadForm.value.categoryId) {
+      formData.append('categoryId', uploadForm.value.categoryId);
+    }
+    if (uploadForm.value.description) {
+      formData.append('description', uploadForm.value.description);
+    }
+
+    await api.post('/api/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    showUploadFile.value = false;
+    fetchFiles();
+    
+    // Reset form
+    uploadForm.value = {
+      assignedTo: '',
+      categoryId: '',
+      description: ''
+    };
+    
+    if (fileInput.value) {
+      fileInput.value.value = '';
+    }
+    
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    alert('Error uploading file. Please try again.');
+  } finally {
+    uploading.value = false;
   }
 };
 
@@ -452,7 +662,7 @@ const approveRequest = (request: any) => {
 
 const confirmApprove = async () => {
   try {
-    await axios.put(`/api/admin/account-requests/${selectedRequest.value!.id}/approve`, approveForm.value);
+    await api.put(`/api/admin/account-requests/${selectedRequest.value!.id}/approve`, approveForm.value);
     showApproveModal.value = false;
     fetchAccountRequests();
     fetchUsers();
@@ -464,7 +674,7 @@ const confirmApprove = async () => {
 const rejectRequest = async (request: any) => {
   if (confirm('Are you sure you want to reject this request?')) {
     try {
-      await axios.put(`/api/admin/account-requests/${request.id}/reject`);
+      await api.put(`/api/admin/account-requests/${request.id}/reject`);
       fetchAccountRequests();
     } catch (error) {
       console.error('Error rejecting request:', error);
@@ -474,7 +684,7 @@ const rejectRequest = async (request: any) => {
 
 const createUser = async () => {
   try {
-    await axios.post('/api/admin/users', newUser.value);
+    await api.post('/api/admin/users', newUser.value);
     showCreateUser.value = false;
     fetchUsers();
     // Reset form
@@ -504,6 +714,76 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+const viewFile = async (file: any) => {
+  selectedFile.value = file;
+  fileContent.value = '';
+  filePreviewUrl.value = '';
+  
+  showViewer.value = true;
+  
+  try {
+    if (isImage(file) || isPDF(file)) {
+      // For images and PDFs, we can create a blob URL for preview
+      const response = await api.get(`/api/files/${file.id}/download`, {
+        responseType: 'blob'
+      });
+      filePreviewUrl.value = window.URL.createObjectURL(new Blob([response.data]));
+    } else if (isText(file)) {
+      // For text files, load content as text
+      const response = await api.get(`/api/files/${file.id}/download`, {
+        responseType: 'text'
+      });
+      fileContent.value = response.data;
+    }
+  } catch (error) {
+    console.error('Error loading file for preview:', error);
+  }
+};
+
+const isImage = (file: any) => {
+  return file?.mime_type?.startsWith('image/');
+};
+
+const isPDF = (file: any) => {
+  return file?.mime_type === 'application/pdf';
+};
+
+const isText = (file: any) => {
+  const textTypes = [
+    'text/plain',
+    'text/csv',
+    'text/html',
+    'text/css',
+    'text/javascript',
+    'application/json',
+    'application/xml'
+  ];
+  return textTypes.includes(file?.mime_type) || 
+         file?.original_name?.endsWith('.txt') ||
+         file?.original_name?.endsWith('.csv') ||
+         file?.original_name?.endsWith('.json') ||
+         file?.original_name?.endsWith('.xml');
+};
+
+const downloadFile = async (file: any) => {
+  try {
+    const response = await api.get(`/api/files/${file.id}/download`, {
+      responseType: 'blob'
+    });
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', file.original_name);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+  }
+};
+
 const handleLogout = async () => {
   await authStore.logout();
   router.push('/login');
@@ -513,5 +793,6 @@ onMounted(() => {
   fetchAccountRequests();
   fetchUsers();
   fetchFiles();
+  fetchCategories();
 });
 </script>

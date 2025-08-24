@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
+import api from '@/lib/axios';
 
 const API_BASE = '/api';
 
@@ -42,7 +42,7 @@ export const useAuthStore = defineStore('auth', {
     async login(username: string, password: string) {
       this.loading = true;
       try {
-        const response = await axios.post(`${API_BASE}/auth/login`, {
+        const response = await api.post(`${API_BASE}/auth/login`, {
           username,
           password
         });
@@ -54,9 +54,6 @@ export const useAuthStore = defineStore('auth', {
         this.isAuthenticated = true;
 
         localStorage.setItem('token', token);
-        
-        // Set axios default header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
         return { success: true };
       } catch (error: any) {
@@ -72,7 +69,7 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       try {
         if (this.token) {
-          await axios.post(`${API_BASE}/auth/logout`);
+          await api.post(`${API_BASE}/auth/logout`);
         }
       } catch (error) {
         console.error('Logout error:', error);
@@ -82,7 +79,6 @@ export const useAuthStore = defineStore('auth', {
         this.isAuthenticated = false;
         
         localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
       }
     },
 
@@ -93,8 +89,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const response = await axios.get(`${API_BASE}/auth/me`);
+        const response = await api.get(`${API_BASE}/auth/me`);
         
         this.token = token;
         this.user = response.data.user;

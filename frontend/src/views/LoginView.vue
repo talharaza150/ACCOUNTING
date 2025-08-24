@@ -92,18 +92,28 @@ const handleLogin = async () => {
   error.value = '';
   loading.value = true;
 
-  const result = await authStore.login(form.value.username, form.value.password);
+  try {
+    const result = await authStore.login(form.value.username, form.value.password);
 
-  loading.value = false;
+    loading.value = false;
 
-  if (result.success) {
-    if (authStore.isAdmin) {
-      router.push('/admin');
+    if (result.success) {
+      console.log('Login successful, user role:', authStore.user?.role);
+      if (authStore.isAdmin) {
+        console.log('Redirecting to admin dashboard');
+        await router.push('/admin');
+      } else {
+        console.log('Redirecting to client dashboard');
+        await router.push('/dashboard');
+      }
     } else {
-      router.push('/dashboard');
+      error.value = result.error || 'Login failed';
+      console.error('Login failed:', result.error);
     }
-  } else {
-    error.value = result.error || 'Login failed';
+  } catch (err) {
+    loading.value = false;
+    error.value = 'Login failed - please try again';
+    console.error('Login error:', err);
   }
 };
 </script>

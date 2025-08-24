@@ -65,7 +65,7 @@ body {
   transition:
     color 0.5s,
     background-color 0.5s;
-  line-height: 1.6;
+  line-height: 1.7;
   font-family:
     Inter,
     -apple-system,
@@ -79,8 +79,56 @@ body {
     'Droid Sans',
     'Helvetica Neue',
     sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enhanced text readability classes */
+.text-enhanced {
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+
+.text-body {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.text-heading {
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.text-subheading {
+  font-weight: 500;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.text-muted {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+/* Dark mode text improvements */
+@media (prefers-color-scheme: dark) {
+  .text-body {
+    color: #e5e7eb;
+  }
+
+  .text-heading {
+    color: #f9fafb;
+  }
+
+  .text-subheading {
+    color: #e5e7eb;
+  }
+
+  .text-muted {
+    color: #9ca3af;
+  }
 }
