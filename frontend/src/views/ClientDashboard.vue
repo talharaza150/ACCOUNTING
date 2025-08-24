@@ -161,6 +161,12 @@
                     >
                       Download
                     </button>
+                    <button
+                      @click="confirmDeleteFile(file)"
+                      class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
                 <div v-if="file.description" class="mt-2 text-sm text-gray-600">
@@ -223,6 +229,53 @@
           >
             Close
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <div class="flex items-center mb-4">
+            <div class="flex-shrink-0">
+              <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <h3 class="text-lg font-medium text-gray-900">Delete Document</h3>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <p class="text-sm text-gray-500 mb-2">Are you sure you want to delete this document?</p>
+            <div class="bg-gray-50 p-3 rounded-md border">
+              <p class="font-medium text-gray-900">{{ selectedFileForDelete?.original_name }}</p>
+              <p class="text-sm text-gray-600">{{ selectedFileForDelete?.category_name || 'Uncategorized' }}</p>
+              <p class="text-sm text-gray-600">Size: {{ formatFileSize(selectedFileForDelete?.file_size || 0) }}</p>
+            </div>
+            <p class="text-sm text-red-600 mt-2">
+              <strong>Warning:</strong> This action cannot be undone. The document will be permanently removed.
+            </p>
+          </div>
+
+          <div class="flex justify-end space-x-2">
+            <button
+              type="button"
+              @click="showDeleteModal = false"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              @click="deleteFile"
+              :disabled="deleting"
+              class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              {{ deleting ? 'Deleting...' : 'Delete Document' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -318,6 +371,11 @@ const showViewer = ref(false);
 const selectedFile = ref<any>(null);
 const fileContent = ref('');
 const filePreviewUrl = ref('');
+
+// Delete functionality
+const showDeleteModal = ref(false);
+const selectedFileForDelete = ref<any>(null);
+const deleting = ref(false);
 
 const recentFiles = computed(() => {
   const thirtyDaysAgo = new Date();
@@ -484,6 +542,36 @@ const formatFileSize = (bytes: number) => {
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString();
+};
+
+const confirmDeleteFile = (file: any) => {
+  selectedFileForDelete.value = file;
+  showDeleteModal.value = true;
+};
+
+const deleteFile = async () => {
+  if (!selectedFileForDelete.value) return;
+  
+  deleting.value = true;
+  
+  try {
+    await api.delete(`/api/files/${selectedFileForDelete.value.id}/delete`);
+    
+    showDeleteModal.value = false;
+    selectedFileForDelete.value = null;
+    
+    // Refresh the files list
+    fetchFiles();
+    
+    // Show success notification
+    alert('Document deleted successfully');
+    
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    alert('Error deleting document. Please try again.');
+  } finally {
+    deleting.value = false;
+  }
 };
 
 const handleLogout = async () => {
