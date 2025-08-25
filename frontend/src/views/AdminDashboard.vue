@@ -1,5 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <PullToRefresh
+    :on-refresh="refreshData"
+    :disabled="loadingUsers || loadingFiles"
+  >
+    <div class="min-h-screen bg-gray-50">
     <!-- Navigation -->
     <nav class="bg-white shadow">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -550,17 +554,21 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </PullToRefresh>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useToast } from '@/composables/useToast';
 import api from '@/lib/axios';
+import PullToRefresh from '@/components/ui/PullToRefresh.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { toast } = useToast();
 
 const activeTab = ref('requests');
 const tabs = [
@@ -655,6 +663,26 @@ const fetchFiles = async () => {
     console.error('Error fetching files:', error);
   } finally {
     loadingFiles.value = false;
+  }
+};
+
+// Pull-to-refresh handler
+const refreshData = async () => {
+  try {
+    const [usersResponse, filesResponse] = await Promise.all([
+      api.get('/api/admin/users'),
+      api.get('/api/files')
+    ]);
+    
+    users.value = usersResponse.data;
+    files.value = filesResponse.data;
+    
+    toast.success('Data refreshed', {
+      duration: 2000
+    });
+  } catch (error) {
+    console.error('Error refreshing data:', error);
+    toast.error('Failed to refresh data');
   }
 };
 
