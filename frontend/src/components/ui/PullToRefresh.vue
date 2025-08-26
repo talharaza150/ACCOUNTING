@@ -1,33 +1,33 @@
 <template>
   <div class="relative">
-    <!-- Pull to refresh indicator -->
+    <!-- Pull to refresh indicator - less intrusive -->
     <div 
-      v-if="isPulling || isRefreshing"
-      class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full flex items-center justify-center transition-all duration-300 ease-out"
+      v-if="(isPulling && pullDistance > 30) || isRefreshing"
+      class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full flex items-center justify-center transition-all duration-200 ease-out z-10"
       :style="{ 
-        transform: `translateX(-50%) translateY(${Math.min(pullDistance - 60, 0)}px)`,
-        opacity: pullDistance > 20 ? 1 : pullDistance / 20
+        transform: `translateX(-50%) translateY(${Math.min(pullDistance - 80, -10)}px)`,
+        opacity: pullDistance > 40 ? Math.min(pullDistance / 80, 1) : 0
       }"
       role="status"
       :aria-label="isRefreshing ? 'Refreshing content' : 'Pull to refresh'"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+      <div class="bg-white dark:bg-gray-800 rounded-full p-2 shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-center">
         <Icon 
           v-if="!isRefreshing"
           name="arrow-down" 
           :class="{
             'text-gray-400 dark:text-gray-500': pullDistance < threshold,
             'text-blue-500 dark:text-blue-400 transform rotate-180': pullDistance >= threshold,
-            'transition-transform duration-200': true
+            'transition-transform duration-150': true
           }"
-          size="sm"
+          size="xs"
           aria-hidden="true"
         />
         <Icon
           v-else
           name="arrow-path"
           class="text-blue-500 dark:text-blue-400 animate-spin"
-          size="sm"
+          size="xs"
           aria-hidden="true"
         />
       </div>
@@ -37,8 +37,8 @@
     <div 
       ref="contentRef"
       :style="{ 
-        transform: isPulling ? `translateY(${Math.min(pullDistance * 0.3, 30)}px)` : 'translateY(0)',
-        transition: isPulling ? 'none' : 'transform 300ms ease-out'
+        transform: isPulling ? `translateY(${Math.min(pullDistance * 0.1, 10)}px)` : 'translateY(0)',
+        transition: isPulling ? 'none' : 'transform 200ms ease-out'
       }"
     >
       <slot />

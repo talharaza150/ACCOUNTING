@@ -204,7 +204,8 @@ const inputClasses = computed(() => {
     'placeholder:text-gray-400 focus:ring-2 focus:ring-inset',
     'disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:ring-gray-200',
     'dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500',
-    'min-h-[44px]' // Touch target size
+    'min-h-[44px]', // Touch target size
+    'touch-manipulation'
   ];
 
   // Size variants

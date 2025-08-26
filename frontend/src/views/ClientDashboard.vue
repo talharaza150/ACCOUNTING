@@ -3,7 +3,7 @@
     :on-refresh="refreshFiles"
     :disabled="isLoading"
   >
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
       <!-- Navigation -->
       <AppNavigation
         title="Raza Accounting Portal"
@@ -14,9 +14,9 @@
       />
 
       <!-- Main Content -->
-      <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8" role="main">
+      <main class="max-w-7xl mx-auto py-2 px-3 sm:py-6 sm:px-6 lg:px-8 pb-20" role="main">
       <!-- Page Header -->
-      <header class="mb-8">
+      <header class="mb-4 sm:mb-8">
         <div class="md:flex md:items-center md:justify-between">
           <div class="flex-1 min-w-0">
             <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:text-3xl">
@@ -26,7 +26,7 @@
               Manage and access your accounting documents
             </p>
           </div>
-          <div class="mt-4 flex md:mt-0 md:ml-4 space-x-3">
+          <div class="mt-3 flex flex-wrap gap-2 md:mt-0 md:ml-4 md:space-x-3 md:gap-0">
             <!-- View toggle -->
             <div class="flex rounded-md shadow-sm" role="group" aria-label="View options">
               <BaseButton
@@ -62,8 +62,8 @@
       </header>
 
       <!-- Stats Cards -->
-      <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" aria-label="Document statistics">
-        <div class="card p-6">
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-8" aria-label="Document statistics">
+        <div class="card p-4 sm:p-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <Icon name="document" class="h-8 w-8 text-blue-500" aria-hidden="true" />
@@ -81,7 +81,7 @@
           </div>
         </div>
 
-        <div class="card p-6">
+        <div class="card p-4 sm:p-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <Icon name="clock" class="h-8 w-8 text-green-500" aria-hidden="true" />
@@ -99,7 +99,7 @@
           </div>
         </div>
 
-        <div class="card p-6">
+        <div class="card p-4 sm:p-6">
           <div class="flex items-center">
             <div class="flex-shrink-0">
               <Icon name="tag" class="h-8 w-8 text-purple-500" aria-hidden="true" />
@@ -119,9 +119,9 @@
       </section>
 
       <!-- Search and Filters -->
-      <section class="card mb-8" aria-label="Search and filter documents">
-        <div class="p-6">
-          <div class="flex flex-col sm:flex-row gap-4">
+      <section class="card mb-4 md:mb-8" aria-label="Search and filter documents">
+        <div class="p-3 sm:p-6">
+          <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <!-- Search input -->
             <div class="flex-1">
               <BaseInput
@@ -170,7 +170,7 @@
       <section aria-label="Documents">
         <!-- Loading state -->
         <div v-if="loading" class="space-y-4">
-          <div v-for="i in 5" :key="i" class="card p-6 loading-skeleton h-24"></div>
+          <div v-for="i in 5" :key="i" class="card p-4 sm:p-6 loading-skeleton h-20 sm:h-24"></div>
         </div>
 
         <!-- Empty state -->
@@ -195,13 +195,45 @@
           </BaseButton>
         </div>
 
-        <!-- File grid/list -->
+        <!-- File grid/list with Virtual Scrolling -->
+        <VirtualScrollList
+          v-else-if="shouldUseVirtualScroll"
+          :items="sortedFiles"
+          :height="isMobile ? 500 : 600"
+          :item-height="viewMode === 'grid' ? (isMobile ? 240 : 280) : (isMobile ? 100 : 120)"
+          :selected-items="selectedFiles"
+          :get-item-key="(file) => file.id"
+          :empty-message="'No files found'"
+          :empty-icon="'document'"
+          :aria-label="'Files list'"
+          class="rounded-lg border border-gray-200 dark:border-gray-700 touch-pan-y overscroll-y-contain"
+        >
+          <template #default="{ item: file, index }">
+            <div class="p-1.5 sm:p-2">
+              <FileCard
+                :file="file"
+                :layout="viewMode"
+                :actions="fileActions"
+                :selectable="bulkMode"
+                :is-selected="selectedFiles.has(file.id)"
+                :preview-url="getPreviewUrl(file)"
+                @click="viewFile"
+                @select="handleFileSelection"
+                @swipe-action="handleSwipeAction"
+              />
+            </div>
+          </template>
+        </VirtualScrollList>
+
+        <!-- Standard File grid/list -->
         <div
           v-else
-          :class="viewMode === 'grid' 
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' 
-            : 'space-y-4'
-          "
+          :class="[
+            viewMode === 'grid' 
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4' 
+              : 'space-y-3 sm:space-y-4',
+            'touch-pan-y overscroll-y-contain'
+          ]"
         >
           <FileCard
             v-for="file in sortedFiles"
@@ -219,8 +251,8 @@
         </div>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="mt-8 flex justify-center">
-          <nav class="flex space-x-2" aria-label="Pagination">
+        <div v-if="totalPages > 1" class="mt-6 sm:mt-8 flex justify-center">
+          <nav class="flex space-x-1.5 sm:space-x-2 flex-wrap justify-center" aria-label="Pagination">
             <BaseButton
               variant="ghost"
               size="sm"
@@ -266,7 +298,7 @@
       >
         <div
           v-if="selectedFiles.size > 0"
-          class="fixed bottom-4 left-4 right-4 mx-auto max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-40"
+          class="fixed bottom-2 left-2 right-2 mx-auto max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 z-40 touch-manipulation"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
@@ -274,7 +306,7 @@
                 {{ selectedFiles.size }} {{ selectedFiles.size === 1 ? 'file' : 'files' }} selected
               </span>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-1.5 sm:space-x-2 overflow-x-auto">
               <BaseButton
                 variant="ghost"
                 size="sm"
@@ -530,11 +562,13 @@
     </div>
   </PullToRefresh>
 </template><script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
 import { useDarkMode } from '@/composables/useDarkMode';
+import { useAnalytics } from '@/composables/useAnalytics';
+import { useDevice } from '@/composables/useDevice';
 import api from '@/lib/axios';
 
 // Components
@@ -546,11 +580,14 @@ import Icon from '@/components/ui/Icon.vue';
 import FileCard from '@/components/ui/FileCard.vue';
 import PullToRefresh from '@/components/ui/PullToRefresh.vue';
 import ImageViewer from '@/components/ui/ImageViewer.vue';
+import VirtualScrollList from '@/components/ui/VirtualScrollList.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { toast } = useToast();
+const analytics = useAnalytics();
 const { isDark } = useDarkMode();
+const { isMobile } = useDevice();
 
 // State management
 const files = ref<any[]>([]);
@@ -562,6 +599,7 @@ const sortBy = ref('created_at');
 const viewMode = ref<'list' | 'grid'>('list');
 const bulkMode = ref(false);
 const selectedFiles = ref(new Set<string>());
+const enableVirtualScroll = ref(false);
 
 // Pagination
 const currentPage = ref(1);
@@ -718,8 +756,13 @@ const sortedFiles = computed(() => {
   return sorted.slice(start, start + itemsPerPage.value);
 });
 
+// Auto-enable virtual scrolling for large lists
+const shouldUseVirtualScroll = computed(() => 
+  filteredFiles.value.length > 100 || enableVirtualScroll.value
+);
+
 const totalPages = computed(() => 
-  Math.ceil(filteredFiles.value.length / itemsPerPage.value)
+  shouldUseVirtualScroll.value ? 1 : Math.ceil(filteredFiles.value.length / itemsPerPage.value)
 );
 
 const visiblePages = computed(() => {
@@ -876,6 +919,14 @@ const uploadFile = async () => {
     });
 
     toast.success('Document uploaded successfully');
+    
+    // Track file upload
+    analytics.trackFileAction('upload', response.data.file.id, response.data.file.original_name, {
+      mime_type: selectedFile.value.type,
+      file_size: selectedFile.value.size,
+      category: uploadForm.value.categoryId
+    });
+    
     showUploadModal.value = false;
     resetUploadForm();
     fetchFiles();
@@ -891,6 +942,13 @@ const viewFile = async (file: any) => {
   selectedFileForView.value = file;
   fileContent.value = '';
   filePreviewUrl.value = '';
+  
+  // Track file view
+  analytics.trackFileAction('view', file.id, file.original_name, {
+    mime_type: file.mime_type,
+    file_size: file.file_size,
+    category: file.category_name
+  });
   
   try {
     if (isImage(file)) {
@@ -1136,6 +1194,21 @@ const handleKeyboardShortcuts = (event: KeyboardEvent) => {
     });
   }
 };
+
+// Watch for search changes to track analytics
+watch(searchTerm, (newTerm, oldTerm) => {
+  if (newTerm && newTerm !== oldTerm && newTerm.length >= 3) {
+    // Debounce search analytics
+    setTimeout(() => {
+      if (searchTerm.value === newTerm) {
+        analytics.trackSearch(newTerm, filteredFiles.value.length, {
+          category_filter: selectedCategory.value,
+          sort_by: sortBy.value
+        });
+      }
+    }, 1000);
+  }
+});
 
 // Lifecycle
 onMounted(async () => {

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '@/lib/axios';
+import { useAnalytics } from '@/composables/useAnalytics';
 
 const API_BASE = '/api';
 
@@ -54,6 +55,18 @@ export const useAuthStore = defineStore('auth', {
         this.isAuthenticated = true;
 
         localStorage.setItem('token', token);
+
+        // Track login analytics
+        const analytics = useAnalytics();
+        analytics.identify(user.id, {
+          role: user.role,
+          email: user.email,
+          company: user.company_name || undefined
+        });
+        analytics.track('login_success', {
+          method: 'password',
+          user_role: user.role
+        });
 
         return { success: true };
       } catch (error: any) {

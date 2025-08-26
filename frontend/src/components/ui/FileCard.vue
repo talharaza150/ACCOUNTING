@@ -12,14 +12,14 @@
     @keydown="handleKeydown"
   >
     <!-- Selection checkbox -->
-    <div v-if="selectable" class="absolute top-2 left-2 z-10">
+    <div v-if="selectable" class="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-10">
       <label class="flex items-center cursor-pointer">
         <input
           type="checkbox"
           :checked="isSelected"
           @change="handleSelectionChange"
           @click.stop
-          class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 touch-target"
+          class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5 touch-manipulation"
           :aria-label="`Select ${file.original_name}`"
         />
       </label>
@@ -28,13 +28,18 @@
     <!-- File icon/preview -->
     <div class="flex-shrink-0 mb-3 sm:mb-0 sm:mr-4">
       <div :class="iconContainerClasses">
-        <!-- Image preview -->
-        <img
+        <!-- Image preview with lazy loading -->
+        <LazyImage
           v-if="isImage && previewUrl"
           :src="previewUrl"
           :alt="file.original_name"
-          class="w-full h-full object-cover rounded"
-          loading="lazy"
+          :width="layout === 'grid' ? 200 : 80"
+          :height="layout === 'grid' ? 150 : 80"
+          fit="cover"
+          container-class="w-full h-full rounded"
+          image-class="w-full h-full object-cover rounded"
+          :show-error-text="false"
+          :show-progress="true"
           @error="handleImageError"
         />
         
@@ -48,7 +53,7 @@
         />
         
         <!-- File size badge -->
-        <div class="absolute -top-1 -right-1 bg-gray-500 text-white text-2xs px-1 py-0.5 rounded text-center min-w-[2rem]">
+        <div class="absolute -top-0.5 -right-0.5 bg-gray-500 text-white text-2xs px-1.5 py-0.5 rounded text-center min-w-[2rem] text-xs sm:text-2xs">
           {{ formatFileSize(file.file_size) }}
         </div>
       </div>
@@ -57,12 +62,12 @@
     <!-- File info -->
     <div class="flex-1 min-w-0">
       <!-- File name -->
-      <h3 class="font-medium text-gray-900 dark:text-gray-100 truncate mb-1">
+      <h3 class="font-medium text-gray-900 dark:text-gray-100 truncate mb-0.5 sm:mb-1 text-sm sm:text-base">
         {{ file.original_name }}
       </h3>
       
       <!-- Metadata -->
-      <div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+      <div class="space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
         <div class="flex items-center space-x-2">
           <Icon name="tag" size="sm" aria-hidden="true" />
           <span>{{ file.category_name || 'Uncategorized' }}</span>
@@ -82,13 +87,13 @@
       </div>
       
       <!-- Description -->
-      <p v-if="file.description" class="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
+      <p v-if="file.description" class="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mt-1 sm:mt-2 line-clamp-2">
         {{ file.description }}
       </p>
     </div>
 
     <!-- Actions -->
-    <div class="flex-shrink-0 mt-3 sm:mt-0 sm:ml-4">
+    <div class="flex-shrink-0 mt-2 sm:mt-3 sm:mt-0 sm:ml-4">
       <div :class="actionsClasses">
         <BaseButton
           v-for="action in actions"
@@ -118,6 +123,7 @@
 import { ref, computed } from 'vue';
 import BaseButton from './BaseButton.vue';
 import Icon from './Icon.vue';
+import LazyImage from './LazyImage.vue';
 
 interface FileData {
   id: string;
@@ -173,23 +179,23 @@ const startY = ref(0);
 
 const cardClasses = computed(() => [
   'relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md cursor-pointer',
-  'overflow-hidden select-none',
+  'overflow-hidden select-none touch-manipulation',
   props.layout === 'grid' 
-    ? 'p-4' 
-    : 'p-4 flex items-center space-x-4',
+    ? 'p-3 sm:p-4' 
+    : 'p-3 sm:p-4 flex items-center space-x-3 sm:space-x-4',
   props.selectable && props.isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : '',
   isDragging.value ? 'transition-none' : ''
 ]);
 
 const iconContainerClasses = computed(() => [
   'relative',
-  props.layout === 'grid' ? 'w-16 h-16 mx-auto' : 'w-12 h-12',
+  props.layout === 'grid' ? 'w-14 h-14 sm:w-16 sm:h-16 mx-auto' : 'w-10 h-10 sm:w-12 sm:h-12',
   'bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden'
 ]);
 
 const actionsClasses = computed(() => [
   'flex',
-  props.layout === 'grid' ? 'justify-center space-x-1 mt-2' : 'space-x-2'
+  props.layout === 'grid' ? 'justify-center space-x-1 mt-1.5 sm:mt-2' : 'space-x-1.5 sm:space-x-2'
 ]);
 
 const swipeStyle = computed(() => ({

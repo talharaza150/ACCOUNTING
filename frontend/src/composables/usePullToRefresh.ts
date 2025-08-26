@@ -10,8 +10,8 @@ interface PullToRefreshOptions {
 
 export function usePullToRefresh(options: PullToRefreshOptions = {}) {
   const {
-    threshold = 60,
-    maxDistance = 120,
+    threshold = 80, // Increased from 60 to 80
+    maxDistance = 100, // Reduced from 120 to 100
     onRefresh,
     disabled = false
   } = options;
@@ -31,7 +31,9 @@ export function usePullToRefresh(options: PullToRefreshOptions = {}) {
     if (disabled || !isMobile.value || isRefreshing.value) return;
     
     startY = e.touches[0].clientY;
-    canPull.value = scrollElement ? scrollElement.scrollTop === 0 : window.scrollY === 0;
+    // More restrictive - only allow pull-to-refresh at the very top and with minimal scroll
+    const scrollTop = scrollElement ? scrollElement.scrollTop : window.scrollY;
+    canPull.value = scrollTop <= 2; // Allow 2px tolerance for scroll position
   };
 
   const handleTouchMove = (e: TouchEvent) => {
@@ -40,10 +42,15 @@ export function usePullToRefresh(options: PullToRefreshOptions = {}) {
     currentY = e.touches[0].clientY;
     const diff = currentY - startY;
 
-    if (diff > 0 && (scrollElement ? scrollElement.scrollTop === 0 : window.scrollY === 0)) {
-      e.preventDefault();
+    // More restrictive conditions and less aggressive pull
+    const scrollTop = scrollElement ? scrollElement.scrollTop : window.scrollY;
+    if (diff > 10 && scrollTop <= 2) { // Minimum 10px pull and strict scroll position
+      // Only prevent default if we're actually pulling
+      if (diff > 20) {
+        e.preventDefault();
+      }
       isPulling.value = true;
-      pullDistance.value = Math.min(diff * 0.5, maxDistance);
+      pullDistance.value = Math.min(diff * 0.3, maxDistance); // Reduced multiplier from 0.5 to 0.3
     }
   };
 

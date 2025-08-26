@@ -4,14 +4,14 @@
     role="navigation"
     aria-label="Main navigation"
   >
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-14 sm:h-16">
         <!-- Logo and brand -->
         <div class="flex items-center">
           <div class="flex-shrink-0 flex items-center">
             <Icon 
               name="clipboard-document" 
-              class="h-8 w-8 text-blue-600 dark:text-blue-400 mr-3" 
+              class="h-7 w-7 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400 mr-2 sm:mr-3" 
               aria-hidden="true" 
             />
             <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100 hidden sm:block">
@@ -24,9 +24,9 @@
         </div>
 
         <!-- Desktop navigation -->
-        <div class="hidden md:flex items-center space-x-4">
+        <div class="hidden md:flex items-center space-x-3">
           <!-- Navigation items -->
-          <div v-if="navigationItems.length > 0" class="flex space-x-1">
+          <div v-if="navigationItems.length > 0" class="flex space-x-0.5">
             <BaseButton
               v-for="item in navigationItems"
               :key="item.id"
@@ -49,6 +49,40 @@
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             @click="toggleDarkMode"
           />
+
+          <!-- PWA Install Button -->
+          <BaseButton
+            v-if="isInstallable"
+            variant="ghost"
+            size="sm"
+            icon="arrow-down-tray"
+            icon-only
+            aria-label="Install app"
+            title="Install app for offline access"
+            @click="installPWA"
+          />
+
+          <!-- PWA Update Button -->
+          <BaseButton
+            v-if="isUpdateAvailable"
+            variant="primary"
+            size="sm"
+            icon="arrow-path"
+            icon-only
+            aria-label="Update app"
+            title="New version available - click to update"
+            @click="updatePWA"
+          />
+
+          <!-- Offline Indicator -->
+          <div
+            v-if="!isOnline"
+            class="flex items-center px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-md text-xs"
+            title="You are currently offline"
+          >
+            <Icon name="wifi-slash" size="xs" class="mr-1" />
+            <span class="hidden sm:inline">Offline</span>
+          </div>
 
           <!-- User menu -->
           <div v-if="user" class="relative" ref="userMenuRef">
@@ -149,7 +183,7 @@
         v-if="isMobileMenuOpen"
         class="md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 overflow-hidden"
       >
-        <div class="px-4 py-2 space-y-1">
+        <div class="px-3 py-2 space-y-1.5">
           <!-- Mobile navigation items -->
           <BaseButton
             v-for="item in navigationItems"
@@ -164,8 +198,8 @@
           </BaseButton>
 
           <!-- User info and actions for mobile -->
-          <div v-if="user" class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-            <div class="flex items-center px-3 py-2">
+          <div v-if="user" class="border-t border-gray-200 dark:border-gray-700 pt-1.5 mt-1.5">
+            <div class="flex items-center px-2 py-1.5">
               <div class="h-10 w-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
                 <span class="text-sm font-medium text-blue-700 dark:text-blue-300">
                   {{ user.initials }}
@@ -177,7 +211,7 @@
               </div>
             </div>
             
-            <div class="space-y-1">
+            <div class="space-y-0.5">
               <BaseButton
                 v-for="item in userMenuItems"
                 :key="item.id"
@@ -202,6 +236,7 @@ import { onClickOutside } from '@vueuse/core';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import Icon from '@/components/ui/Icon.vue';
 import { useDarkMode } from '@/composables/useDarkMode';
+import { usePWA } from '@/composables/usePWA';
 
 interface NavigationItem {
   id: string;
@@ -237,6 +272,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { isDark, toggle: toggleDarkMode } = useDarkMode();
+const { isInstallable, installPWA, isOnline, isUpdateAvailable, updatePWA } = usePWA();
 
 const isMobileMenuOpen = ref(false);
 const isUserMenuOpen = ref(false);
