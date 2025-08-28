@@ -654,13 +654,13 @@ const userMenuItems = computed(() => [
     id: 'profile',
     label: 'Profile',
     icon: 'user',
-    handler: () => {}
+    handler: () => router.push('/profile')
   },
   {
     id: 'settings',
     label: 'Settings', 
-    icon: 'cog',
-    handler: () => {}
+    icon: 'cog-6-tooth',
+    handler: () => router.push('/settings')
   },
   {
     id: 'logout',

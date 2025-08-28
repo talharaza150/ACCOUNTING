@@ -17,20 +17,20 @@
       <Icon name="x-mark" size="lg" />
     </button>
 
-    <!-- Controls -->
-    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 bg-black bg-opacity-70 rounded-lg p-3">
+    <!-- Controls - Responsive -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 sm:space-x-4 bg-black bg-opacity-70 rounded-lg p-2 sm:p-3">
       <!-- Zoom out -->
       <button
         @click="zoomOut"
         :disabled="scale <= minScale"
-        class="p-2 text-white hover:text-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+        class="p-2 sm:p-2 text-white hover:text-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors touch-manipulation"
         aria-label="Zoom out"
       >
-        <Icon name="minus" size="sm" />
+        <Icon name="minus" :size="isMobile ? 'sm' : 'sm'" />
       </button>
 
       <!-- Zoom level -->
-      <span class="text-white text-sm font-medium min-w-[60px] text-center">
+      <span class="text-white text-xs sm:text-sm font-medium min-w-[50px] sm:min-w-[60px] text-center">
         {{ Math.round(scale * 100) }}%
       </span>
 
@@ -38,28 +38,28 @@
       <button
         @click="zoomIn"
         :disabled="scale >= maxScale"
-        class="p-2 text-white hover:text-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+        class="p-2 sm:p-2 text-white hover:text-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors touch-manipulation"
         aria-label="Zoom in"
       >
-        <Icon name="plus" size="sm" />
+        <Icon name="plus" :size="isMobile ? 'sm' : 'sm'" />
       </button>
 
       <!-- Reset -->
       <button
         @click="resetTransform"
-        class="p-2 text-white hover:text-gray-300 transition-colors"
+        class="p-2 sm:p-2 text-white hover:text-gray-300 transition-colors touch-manipulation"
         aria-label="Reset zoom and position"
       >
-        <Icon name="arrow-path" size="sm" />
+        <Icon name="arrow-path" :size="isMobile ? 'sm' : 'sm'" />
       </button>
 
       <!-- Fit to screen -->
       <button
         @click="fitToScreen"
-        class="p-2 text-white hover:text-gray-300 transition-colors"
+        class="p-2 sm:p-2 text-white hover:text-gray-300 transition-colors touch-manipulation"
         aria-label="Fit to screen"
       >
-        <Icon name="arrows-pointing-in" size="sm" />
+        <Icon name="arrows-pointing-in" :size="isMobile ? 'sm' : 'sm'" />
       </button>
     </div>
 
@@ -71,8 +71,14 @@
     <!-- Image container -->
     <div
       ref="containerRef"
-      class="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
-      :class="{ 'cursor-zoom-in': scale === 1, 'cursor-zoom-out': scale > 1 }"
+      class="relative w-full h-full overflow-hidden select-none"
+      :class="{
+        'cursor-grab': !isDragging && scale > 1 && !isMobile,
+        'cursor-grabbing': isDragging && !isMobile,
+        'cursor-zoom-in': scale === 1 && !isMobile,
+        'cursor-zoom-out': scale > 1 && !isMobile,
+        'touch-none': isMobile
+      }"
       @mousedown="handleMouseDown"
       @mousemove="handleMouseMove"
       @mouseup="handleMouseUp"
@@ -86,7 +92,7 @@
         ref="imageRef"
         :src="imageSrc"
         :alt="imageAlt"
-        class="select-none transition-transform duration-300 ease-out"
+        class="select-none transition-transform duration-200 ease-out max-w-none max-h-none"
         :style="imageStyle"
         @load="handleImageLoad"
         @error="handleImageError"
@@ -145,14 +151,17 @@ const isDragging = ref(false);
 const dragStart = ref({ x: 0, y: 0 });
 const lastTap = ref(0);
 
-// Constants
-const minScale = 0.1;
-const maxScale = 10;
-const zoomStep = 0.25;
+// Constants - Optimized zoom limits
+const minScale = 0.5; // Prevent excessive zoom out
+const maxScale = 5;   // Reasonable maximum zoom
+const zoomStep = 0.2; // Smoother zoom steps
 
 // Touch handling for pinch-to-zoom
 const initialTouchDistance = ref(0);
 const initialScale = ref(1);
+
+// Mobile detection
+const isMobile = ref(false);
 
 // Computed
 const imageStyle = computed(() => ({
@@ -169,10 +178,20 @@ const ariaInstructions = computed(() => {
 // Methods
 const zoomIn = () => {
   scale.value = Math.min(scale.value + zoomStep, maxScale);
+  constrainPan();
 };
 
 const zoomOut = () => {
-  scale.value = Math.max(scale.value - zoomStep, minScale);
+  const newScale = Math.max(scale.value - zoomStep, minScale);
+  scale.value = newScale;
+  
+  // Reset pan when at minimum scale
+  if (newScale <= minScale) {
+    translateX.value = 0;
+    translateY.value = 0;
+  } else {
+    constrainPan();
+  }
 };
 
 const resetTransform = () => {
@@ -190,14 +209,17 @@ const fitToScreen = () => {
   const containerRatio = container.width / container.height;
   const imageRatio = image.naturalWidth / image.naturalHeight;
   
+  let fitScale;
   if (imageRatio > containerRatio) {
-    // Image is wider
-    scale.value = (container.width * 0.9) / image.naturalWidth;
+    // Image is wider - fit to width
+    fitScale = (container.width * 0.9) / image.naturalWidth;
   } else {
-    // Image is taller
-    scale.value = (container.height * 0.9) / image.naturalHeight;
+    // Image is taller - fit to height
+    fitScale = (container.height * 0.9) / image.naturalHeight;
   }
   
+  // Ensure fit scale respects minimum zoom limit
+  scale.value = Math.max(fitScale, minScale);
   translateX.value = 0;
   translateY.value = 0;
 };
@@ -254,11 +276,32 @@ const handleMouseDown = (e: MouseEvent) => {
   e.preventDefault();
 };
 
+const constrainPan = () => {
+  if (!containerRef.value || !imageRef.value || scale.value <= 1) {
+    translateX.value = 0;
+    translateY.value = 0;
+    return;
+  }
+
+  const container = containerRef.value.getBoundingClientRect();
+  const image = imageRef.value;
+  
+  const scaledWidth = image.naturalWidth * scale.value;
+  const scaledHeight = image.naturalHeight * scale.value;
+  
+  const maxTranslateX = Math.max(0, (scaledWidth - container.width) / 2 / scale.value);
+  const maxTranslateY = Math.max(0, (scaledHeight - container.height) / 2 / scale.value);
+  
+  translateX.value = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX.value));
+  translateY.value = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY.value));
+};
+
 const handleMouseMove = (e: MouseEvent) => {
   if (!isDragging.value || scale.value <= 1) return;
   
   translateX.value = e.clientX - dragStart.value.x;
   translateY.value = e.clientY - dragStart.value.y;
+  constrainPan();
 };
 
 const handleMouseUp = () => {
@@ -283,9 +326,10 @@ const handleWheel = (e: WheelEvent) => {
     scale.value = newScale;
     
     // Adjust translation to zoom at cursor position
-    if (newScale > 1) {
+    if (newScale > minScale) {
       translateX.value -= zoomPointX * (newScale - 1) / newScale;
       translateY.value -= zoomPointY * (newScale - 1) / newScale;
+      constrainPan();
     } else {
       translateX.value = 0;
       translateY.value = 0;
@@ -327,15 +371,25 @@ const handleTouchMove = (e: TouchEvent) => {
   if (e.touches.length === 2) {
     // Pinch to zoom
     const currentDistance = getTouchDistance(e.touches);
-    const scaleChange = currentDistance / initialTouchDistance.value;
-    const newScale = Math.max(minScale, Math.min(initialScale.value * scaleChange, maxScale));
-    
-    scale.value = newScale;
+    if (initialTouchDistance.value > 0) {
+      const scaleChange = currentDistance / initialTouchDistance.value;
+      const newScale = Math.max(minScale, Math.min(initialScale.value * scaleChange, maxScale));
+      scale.value = newScale;
+      
+      // Reset pan when zooming out to minimum
+      if (newScale <= minScale) {
+        translateX.value = 0;
+        translateY.value = 0;
+      } else {
+        constrainPan();
+      }
+    }
   } else if (e.touches.length === 1 && isDragging.value && scale.value > 1) {
     // Pan
     const touch = e.touches[0];
     translateX.value = touch.clientX - dragStart.value.x;
     translateY.value = touch.clientY - dragStart.value.y;
+    constrainPan();
   }
   e.preventDefault();
 };
@@ -374,10 +428,17 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 // Lifecycle
 onMounted(() => {
-  // Focus the container for keyboard navigation
-  nextTick(() => {
-    containerRef.value?.focus();
-  });
+  // Detect mobile device
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  ) || window.innerWidth < 768;
+  
+  // Focus the container for keyboard navigation (desktop only)
+  if (!isMobile.value) {
+    nextTick(() => {
+      containerRef.value?.focus();
+    });
+  }
   
   // Prevent body scrolling
   document.body.style.overflow = 'hidden';

@@ -3,28 +3,15 @@
     :on-refresh="refreshData"
     :disabled="loadingUsers || loadingFiles"
   >
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <!-- Navigation -->
-    <nav class="bg-white shadow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <h1 class="text-xl font-semibold text-gray-900">
-              Raza Accounting Portal - Admin
-            </h1>
-          </div>
-          <div class="flex items-center space-x-4">
-            <span class="text-gray-700">Welcome, {{ authStore.fullName }}</span>
-            <button
-              @click="handleLogout"
-              class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <AppNavigation
+      title="Raza Accounting Portal - Admin"
+      short-title="Admin Portal"
+      :user="userInfo"
+      :navigation-items="navigationItems"
+      :user-menu-items="userMenuItems"
+    />
 
     <!-- Tab Navigation -->
     <div class="bg-white border-b border-gray-200">
@@ -559,12 +546,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
 import api from '@/lib/axios';
 import PullToRefresh from '@/components/ui/PullToRefresh.vue';
+import AppNavigation from '@/components/layout/AppNavigation.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -576,6 +564,47 @@ const tabs = [
   { id: 'users', name: 'Users' },
   { id: 'files', name: 'Files' }
 ];
+
+// Navigation
+const userInfo = computed(() => {
+  if (!authStore.user) return null;
+  return {
+    name: authStore.fullName,
+    email: authStore.user.email,
+    initials: `${authStore.user.first_name?.[0] || ''}${authStore.user.last_name?.[0] || ''}`.toUpperCase()
+  };
+});
+
+const navigationItems = computed(() => [
+  {
+    id: 'admin',
+    label: 'Dashboard',
+    icon: 'home',
+    active: true,
+    handler: () => router.push('/admin')
+  }
+]);
+
+const userMenuItems = computed(() => [
+  {
+    id: 'profile',
+    label: 'Profile',
+    icon: 'user',
+    handler: () => router.push('/profile')
+  },
+  {
+    id: 'settings',
+    label: 'Settings', 
+    icon: 'cog-6-tooth',
+    handler: () => router.push('/settings')
+  },
+  {
+    id: 'logout',
+    label: 'Sign Out',
+    icon: 'arrow-right-on-rectangle',
+    handler: () => handleLogout()
+  }
+]);
 
 // Data
 const accountRequests = ref<any[]>([]);
